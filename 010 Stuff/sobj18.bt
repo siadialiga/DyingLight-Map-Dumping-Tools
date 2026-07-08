@@ -1,0 +1,200 @@
+//------------------------------------------------
+//--- 010 Editor v12.0.1 Binary Template
+//
+//      File: .sobj
+//   Authors: Brendon
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 53 4F 31 38, SO18
+//   History: 
+//------------------------------------------------
+
+//use <optimize=false> if struct array that contains struct;
+
+LittleEndian();
+
+struct String {
+    short StringLength;
+    char String[StringLength];
+};
+
+
+struct m128_f32 {
+    float f[4]; // Four 32-bit floats (128 bits total)
+};
+
+struct m128_i16 {
+    short s[4];
+};
+struct AABB{
+    float m_Extents_min_x; //rename or ignore
+    float m_Extents_min_y;
+    float m_Extents_min_z;
+    float m_Extents_max_x;
+    float m_Extents_max_y;
+    float m_Extents_max_z;
+};
+
+struct {
+    char MagicID[4];
+    struct {
+        //uint Header;
+        uint Mesh_Offset;   //releated to num_mesh
+        uint Entity_Offset; //size = 48, releated to num_entity
+        uint BatchTree_Offset;    //size = 32, related to num_type
+        uint Unk1;  //size = 48, releated to num_mesh
+        uint Unk2;  //size = 32, releated to sum of flag1 + flag2 + flag3 + flag4
+        uint Unk3;  //size = 36, releated to flag5 (usually the same as num_entity)
+    } Sections;
+
+
+    uint m_NumEntitiesSum;
+    uint m_NumTypes;
+    uint m_NumMeshes;
+    unsigned int m_NumCollisionNodes[4];
+    uint32 m_NumCollisionEntities;
+
+    float m_MaxVisibilityRange;
+    struct AABB m_Extents; //not actually aabb, same struct basically
+} header;
+
+
+struct { //<optimize=false>; disables the grouping
+    struct {
+        String MeshName;
+        String SkinName;
+    
+        //stores this data at (pCVar25->m_MeshFile).field0_0x0 + 0x?? + lVar34,?)
+        //seed, forbidden_tags, required_tags?????
+        int64 required_tags; //bit flags
+        int64 forbidden_tags;
+
+        int RandomSeed;          //collision_category_bits??
+        int collision_collide_bits; //m_TypesRender->collision_collide_bits
+        int SectionEnd; //I don't like that it's not actually the end
+    
+        String MeshElement;
+        short Unknown; //(pCVar25->m_MeshFile).field0_0x0 + 0x8c + lVar34
+    
+    } Mesh[header.m_NumMeshes] <optimize=false>;
+} MeshGroup;
+
+
+struct {
+    struct {
+        float x;
+        float y;
+        float z;
+
+        float xScale;
+        float yScale;
+        float zScale;
+
+        //Quaternion -> ZYX Euler angles
+        short rx; 
+        short ry;
+        short rz;
+        short rw; //Quaternion real part
+    } xform; //xform, xform_alias whatever
+
+    ushort flags;
+    ushort type;
+    uint color1;
+    uint color2;
+
+    //2 shorts
+    char unknown[0x4];
+
+} Entity[header.m_NumEntitiesSum];
+
+//pre render batch
+//batch trees
+//typesPreRender
+
+//looks just like the start of Unknown_Data and Entity_Data, might also be a transformation matrix also then
+struct {
+    float idk[3];
+
+    //SPreRenderBatch
+    short batch_tree_index;
+    short num_batch_tree_nodes;
+    short entity_index;
+    short num_entities;
+    short type_index;
+    short num_types;
+
+    uint Unknown;
+    ushort max_visibility_range;//?
+    ushort sum_of_entity_flags;//?
+} BatchTrees[header.m_NumTypes]; //not sure if name is correct
+
+
+struct {
+/*
+    short Field1;
+    hfloat Field2;
+    float Field3;
+
+    short Field4;
+    hfloat Field5;
+    float Field6;
+
+    float Field8;
+    float Field9;
+
+    float Field11;
+    
+    hfloat Field12;
+    hfloat Field13;
+    float Field14;
+    float Field15;
+    float Field16;
+    
+    int16 unk0; //always 0
+    int16 Index;
+*/
+
+/*
+    float discard[7];
+    hfloat idka;
+    hfloat idkb;
+    float discardd[4];
+*/
+
+    float origin[3];
+    float radius2;
+    float span[3];
+    //hfloat UnkownA; //visibility_range2;??
+    //hfloat UnkownB;
+    float UnknownA;
+    float geom_lod_distance2[3];
+    uint UnkownB;//??
+
+/*
+0000002C     unsigned int max_geom_lod;
+00000030     float shader_lod_distance2[3];
+0000003C     unsigned __int16 type_index;
+0000003E     unsigned __int8 scene_layer;
+*/
+
+} SType_PreRender[header.m_NumMeshes];
+
+
+//m_CollisionTree[4]
+struct {
+    struct AABB bbox;
+
+    uint right_child; 
+    uint data;
+} SCollisionNode[header.m_NumCollisionNodes[0] + header.m_NumCollisionNodes[1] + header.m_NumCollisionNodes[2] + header.m_NumCollisionNodes[3]];
+
+//m_CollisionEntities
+struct {
+    struct AABB aabb;
+
+    uint type_index;
+    uint flags;
+    uint entity_index;
+} SCollisionEntity[header.m_NumCollisionEntities];

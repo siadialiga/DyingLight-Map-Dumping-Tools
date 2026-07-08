@@ -1,0 +1,298 @@
+//------------------------------------------------
+//--- 010 Editor v12.0.1 Binary Template
+//
+//      File: .sobj
+//   Authors: Brendon
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 53 4F 31 36, SO16
+//   History: 
+//------------------------------------------------
+
+//use <optimize=false> if struct array that contains struct;
+
+LittleEndian();
+
+struct String {
+    short StringLength;
+    char String[StringLength];
+};
+
+
+struct m128_f32 {
+    float f[4]; // Four 32-bit floats (128 bits total)
+};
+
+struct m128_i16 {
+    short s[4];
+};
+
+struct {
+    char MagicID[4];
+
+    struct {
+        uint Mesh_Offset;   //releated to num_mesh
+        uint Entity_Offset; //size = 48, releated to num_entity
+        uint BatchTree_Offset;    //size = 32, related to num_type
+        uint unk[5];
+    } Sections;
+
+    struct {
+        uint m_NumEntities;
+        uint idn;
+        uint m_NumMeshes;
+        uint m_NumEntitiesSum; //not sure
+        uint m_NumTypes; //not sure
+        uint unk2[5];    
+    } Flags;
+
+    float Unknown; // related to AABB I think
+    //axis-aligned bounding box stuff
+    struct {
+        float m_Extents_min_x;
+        float m_Extents_min_y;
+        float m_Extents_min_z;
+        float m_Extents_max_x;
+        float m_Extents_max_y;
+        float m_Extents_max_z;
+    } AABB;
+} header;
+
+struct { //<optimize=false>; disables the grouping
+    struct {
+        String MeshName;
+        String SkinName;
+    
+        //stores this data at (pCVar25->m_MeshFile).field0_0x0 + 0x?? + lVar34,?)
+        //seed, forbidden_tags, required_tags?????
+        int64 Unknown;
+        int64 Unknown;
+        int Unknown;          //collision_category_bits??
+        int collision_collide_bits; //m_TypesRender->collision_collide_bits
+        int SectionEnd; //I don't like that it's not actually the end
+    
+        String MeshElement;
+        short Unknown; //(pCVar25->m_MeshFile).field0_0x0 + 0x8c + lVar34
+        char empty[132];
+    } Mesh[header.Flags.m_NumMeshes] <optimize=false>;
+} MeshGroup;
+
+
+struct {
+    struct {
+        float x;
+        float y;
+        float z;
+
+        float xScale;
+        float yScale;
+        float zScale;
+
+        //Quaternion -> ZYX Euler angles
+        short rx; 
+        short ry;
+        short rz;
+        short rw; //Quaternion real part
+    } xform; //xform, xform_alias whatever
+
+    ushort flags;
+    ushort type;
+    uint color1;
+    uint color2;
+    char unknown[0x4];
+
+} Entity[header.Flags.m_NumEntities];//[header.Flags.m_NumEntitiesSum];
+
+
+struct {
+    short Field1;
+    hfloat Field2;
+    float Field3;
+
+    short Field4;
+    hfloat Field5;
+    float Field6;
+
+    float Field8;
+    float Field9;
+
+    float Field11;
+    
+    hfloat Field12;
+    hfloat Field13;
+    float Field14;
+    float Field15;
+    float Field16;
+    
+    int16 unk0; //always 0
+    int16 Index;
+} Mesh_Data[header.Flags.m_NumMeshes];
+
+/*
+struct {
+    char MagicID[4];
+    struct {
+        //uint Header;
+        uint Mesh_Offset;   //releated to num_mesh
+        uint Entity_Offset; //size = 48, releated to num_entity
+        uint BatchTree_Offset;    //size = 32, related to num_type
+        uint Unk1;  //size = 48, releated to num_mesh
+        uint Unk2;  //size = 32, releated to sum of flag1 + flag2 + flag3 + flag4
+        uint Unk3;  //size = 36, releated to flag5 (usually the same as num_entity)
+    } Sections;
+
+    struct {
+        uint m_NumEntitiesSum;
+        uint m_NumTypes;
+        uint m_NumMeshes;
+    } Flags;
+
+    struct { //let's go ahead and tuck these away
+        uint32 flag1;
+        uint32 flag2;
+        uint32 flag3;
+        uint32 flag4;
+        
+        local uint32 sum_of_flags = flag1 + flag2 + flag3 + flag4;
+        
+        uint32 flag5;
+
+    } UnknownFlags;
+
+    float Unknown; // related to AABB I think
+    //axis-aligned bounding box stuff
+    struct {
+        float m_Extents_min_x;
+        float m_Extents_min_y;
+        float m_Extents_min_z;
+        float m_Extents_max_x;
+        float m_Extents_max_y;
+        float m_Extents_max_z;
+    } AABB;
+} header;
+
+
+struct { //<optimize=false>; disables the grouping
+    struct {
+        String MeshName;
+        String SkinName;
+    
+        //stores this data at (pCVar25->m_MeshFile).field0_0x0 + 0x?? + lVar34,?)
+        //seed, forbidden_tags, required_tags?????
+        int64 Unknown;
+        int64 Unknown;
+        int Unknown;          //collision_category_bits??
+        int collision_collide_bits; //m_TypesRender->collision_collide_bits
+        int SectionEnd; //I don't like that it's not actually the end
+    
+        String MeshElement;
+        short Unknown; //(pCVar25->m_MeshFile).field0_0x0 + 0x8c + lVar34
+    
+    } Mesh[header.Flags.m_NumMeshes] <optimize=false>;
+} MeshGroup;
+
+
+struct {
+    struct {
+        float x;
+        float y;
+        float z;
+
+        float xScale;
+        float yScale;
+        float zScale;
+
+        //Quaternion -> ZYX Euler angles
+        short rx; 
+        short ry;
+        short rz;
+        short rw; //Quaternion real part
+    } xform; //xform, xform_alias whatever
+
+    ushort flags;
+    ushort type;
+    uint color1;
+    uint color2;
+    char unknown[0x4];
+
+} Entity[header.Flags.m_NumEntitiesSum];
+
+/*
+// size = 48
+struct {
+    struct {
+        m128_f32 pos_s;
+        
+        //take from xform_alias, ususaly xform is two m128's, one holding 4 floats the other 4 shorts (then is cast to xform_alias)
+        //but it's easier to just have 4 shorts here.
+        short rx; //x
+        short ry; //y
+        short rz; //z
+        short rw; //Quaternion real part
+    } xform;
+
+
+    int16 Flags;
+    int16 Type;
+    int Color1;
+    int Color2;
+    
+    //the rest byte should be padding (align8)
+    FSkip( 4 );
+} Entity[header.Flags.m_NumEntitiesSum];
+* /
+
+//looks just like the start of Unknown_Data and Entity_Data, might also be a transformation matrix also then
+struct {
+    float Unknown[7];
+    ushort max_visibility_range;//?
+    ushort sum_of_entity_flags;//?
+} BatchTrees[header.Flags.m_NumTypes]; //not sure if name is correct
+
+struct {
+    short Field1;
+    hfloat Field2;
+    float Field3;
+
+    short Field4;
+    hfloat Field5;
+    float Field6;
+
+    float Field8;
+    float Field9;
+
+    float Field11;
+    
+    hfloat Field12;
+    hfloat Field13;
+    float Field14;
+    float Field15;
+    float Field16;
+    
+    int16 unk0; //always 0
+    int16 Index;
+} Mesh_Data[header.Flags.m_NumMeshes];
+
+
+
+
+//4x4 transformation matrix????
+
+struct {
+    //uchar bytes[32];
+    float unk[6];   //probably pos and rot
+    uint unk0;  //some kind of index, the max value is flag1 of unknown flag
+    uint unk1;  //its probably some bitfield shit
+} Unknown_Data[header.UnknownFlags.sum_of_flags];
+
+struct {
+    float unk[6];   //probably pos and rot
+    uint mesh_index;  //some kind of index?
+    uint unknown_flag;  //probably index in another file?
+    uint index;
+} Entity_Data[header.UnknownFlags.flag5];
+//stuff that could be things lol, CollisionEntities,BatchTasks,PreRender,PreRenderTypes,TypesRender,BatchTrees,m_NumBatchTreeNodes,m_NumPreRenderBatches
+
+*/

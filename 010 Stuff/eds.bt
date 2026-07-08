@@ -1,0 +1,223 @@
+//------------------------------------------------
+//--- 010 Editor v12.0.1 Binary Template
+//
+//      File: .eds
+//   Authors: Brendon
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 02 00
+//   History: 
+//------------------------------------------------
+LittleEndian();
+
+struct LongString {
+    int StringLength;
+    char String[StringLength];
+};
+
+struct String {
+    short StringLength;
+    char String[StringLength];
+};
+
+struct ObjectTransform{
+	// Rotation matrix for the object's orientation, with 3D position coordinates
+	float rotXX; // First row, X component of X-axis rotation
+	float rotXY; // First row, Y component of X-axis rotation
+	float rotXZ; // First row, Z component of X-axis rotation
+	float posX;  // X coordinate of object position in 3D space
+
+	float rotYX; // Second row, X component of Y-axis rotation
+	float rotYY; // Second row, Y component of Y-axis rotation
+	float rotYZ; // Second row, Z component of Y-axis rotation
+	float posY;  // Y coordinate of object position in 3D space
+
+	float rotZX; // Third row, X component of Z-axis rotation
+	float rotZY; // Third row, Y component of Z-axis rotation
+	float rotZZ; // Third row, Z component of Z-axis rotation
+	float posZ;  // Z coordinate of object position in 3D space
+};
+
+struct RGBA{
+	float R;
+	float G;
+	float B;
+	float A;
+};
+
+
+struct {
+    char SectionID[2];
+    LongString Name;
+
+    char Unknown[16];
+    ObjectTransform Transform;
+
+    char UnknownA[10];
+} Header;
+
+
+struct {
+    char SectionID[2];
+    int SectionLength;
+
+    char Unknown[6];
+    String ClassName;
+
+    byte UnknownA[86];
+
+    // Mesh color data (RGBA) range of 0.0/1.0
+    RGBA MeshColor0;
+    RGBA MeshColor1;
+
+    // Repeated mesh colors, Not sure why
+    RGBA MeshColor0;
+    RGBA MeshColor1;
+
+    int UnknownB;
+    short BufferThing;
+
+    int64 required_tags;
+    int64 forbidden_tags;
+    
+    int seed;
+    int unk0onn;
+    short AnotherBufferTHing;
+
+    ObjectTransform Transform;
+
+    /*
+    struct {
+        byte Unknown[6];
+        byte Flags[8];
+        byte UnknownA[20];
+    } flags;
+    */
+
+
+    int bytesTillSectionEnd;
+    byte HasMesh; //don't care about checking for this
+    String TextMeshName; //not actual mesh
+
+    byte UnknownC[4];
+    String MeshName;
+
+    byte HasSkin;
+
+    if (HasSkin != -1){
+        String SkinSectionText;
+        
+        char UnknownD[4];
+        String SkinName;
+    }
+    
+    char UnknownE[18];
+} Entity[9992] <optimize=false>;
+
+
+/*
+
+// Define the main header structure for the .eds file
+struct {
+    char MAGIC[2];           // Identifier (not necessarily a magic number)
+    LongString Name;
+
+    char Unknown[16];
+/*
+    // These are guesses pretty much
+    short identifier;        // 2 bytes, potentially an identifier
+    int versionOrFlag;       // 4 bytes, could represent a version or flag, short?
+    int offsetOrSize1;       // 4 bytes, possibly an offset or size;
+    short versionFlag;       // 2 bytes, another version or flag;
+    int offsetOrSize2;       // 4 bytes, another offset or size
+* /	
+
+    ObjectTransform Transform;
+
+    char UnknownA[6];
+    /*
+    // Also basicaly guesses
+    short flagOrSize;        // 2 bytes, possibly a flag or size field
+    int sectionSize;         // 4 bytes, size or length indicator
+    int booleanFlag;         // 4 bytes, possibly a boolean or flag
+    * /
+} Header;
+
+
+struct {
+    char MAGIC[2]; // Identifier (not necessarily a magic number)
+    int ObjectLength;    // Total size of this Object structure, ending at ÿÿÿÿ/FFFFFFFF F7 00 01
+    // Also basicaly guesses
+    short propertyFlag1;     // 2 bytes, potential flags or identifiers
+    short propertyFlag2;     // 2 bytes, possibly additional flags or version info
+    char additionalData[2];  // 2 bytes, possibly extra padding or field data
+    
+    String ClassName;
+
+    // Placeholder for unparsed data
+    byte Unknown[86];
+
+    // Mesh color data (RGBA) range of 0.0/1.0
+    RGBA MeshColor0;
+    RGBA MeshColor1;
+
+    // Repeated mesh colors, Not sure why
+    RGBA MeshColor0;
+    RGBA MeshColor1;
+
+    // unknown purpose
+    //char UnknownA[32];
+/*
+    short Field1;
+    short Field2;
+    short Field3;
+    short Field4;
+    short Field5;
+    short Field6;
+    short Field7;
+    short Field8;
+
+    short Field9;
+    short Field10;
+    short Field11;
+    short Field12;
+    short Field13;
+    short Field14;
+    short Field15;
+    short Field16;
+* /
+
+    ObjectTransform Transform;
+
+    byte UnknownB[41];  // skip
+
+    String TextMeshName; //not actual mesh
+    byte section[4]; // skip
+    String MeshName;
+
+    byte HasSkin;
+    if (HasSkin != -1){
+        //same as MeshNameText, Completly pointless but it helps if you look in a hex editor lol
+        short SkinNameTextLength;
+        char SkinNameText[SkinNameTextLength];
+
+        int sectiosn;
+        short SkinNameLength;
+        char SkinName[SkinNameLength];
+
+    //Fuck everything past this line
+    }
+    
+    char UnknownB[11];
+/*
+    char idkanymore[2];
+    int stilldontcare;
+    INT NEGONE;
+    char bruh[1];
+* /
+
+
+} Objects <optimize=false>;
+*/

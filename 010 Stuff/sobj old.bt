@@ -1,0 +1,135 @@
+//------------------------------------------------
+//--- 010 Editor v12.0.1 Binary Template
+//
+//      File: .sobj
+//   Authors: Brendon
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 53 4F 31 38, SO18
+//   History: 
+//------------------------------------------------
+
+//use <optimize=false> if struct array that contains struct;
+
+LittleEndian();
+
+struct String {
+    short StringLength;
+    char String[StringLength];
+};
+
+struct {
+    char MagicID[4];
+    struct {
+        // uint Header;
+        uint Mesh;
+        uint Entity;
+        uint BatchTrees;
+        uint Unknown1;
+        uint Unknown2;
+        uint Unknown3;
+    } Sections;
+
+    struct {
+        uint m_NumEntitiesSum;
+        uint m_NumTypes;
+        uint m_NumMeshes;
+    } Flags;
+
+    struct { //let's go ahead and tuck these away
+        uint32 flag1;
+        uint32 flag2;
+        uint32 flag3;
+        uint32 flag4;
+        uint32 flag5;
+
+    } UnknownFlags;
+
+    float Unknown; // related to AABB I think
+    //axis-aligned bounding box stuff
+    struct {
+        float m_Extents_min_x;
+        float m_Extents_min_y;
+        float m_Extents_min_z;
+        float m_Extents_max_x;
+        float m_Extents_max_y;
+        float m_Extents_max_z;
+    } AABB;
+} header;
+
+
+struct { //<optimize=false>; disables the grouping
+    struct {
+        String MeshName;
+        String SkinName;
+    
+        //stores this data at (pCVar25->m_MeshFile).field0_0x0 + 0x?? + lVar34,?)
+        //seed, forbidden_tags, required_tags?????
+        int64 Unknown;
+        int64 Unknown;
+        int Unknown;          //collision_category_bits??
+        int collision_collide_bits; //m_TypesRender->collision_collide_bits
+        int SectionEnd; //I don't like that it's not actually the end
+    
+        String MeshElement;
+        short Unknown; //(pCVar25->m_MeshFile).field0_0x0 + 0x8c + lVar34
+    
+    } Mesh[header.Flags.m_NumMeshes] <optimize=false>;
+} MeshGroup;
+
+struct {
+    float X;
+    float Y;
+    float Z;
+    float ScaleX;
+    float ScaleY;
+    float ScaleZ;
+
+    //flags??
+    float Field7;
+    float   Status1;
+    
+    int16 Flags;
+    int16 Type;
+    int MeshColor0;
+    int MeshColor1;
+    int idk;
+    
+    
+    //float Field10;
+    //float Field11;
+    
+    //the rest byte should be padding (align8)
+    FSkip( (-FTell()) & 7 );
+} Entity[header.Flags.m_NumEntitiesSum];
+
+
+
+struct {
+    float Field1;
+    float Field1;
+    
+    char Unknown[24];
+} BatchTrees[header.Flags.m_NumTypes]; //not sure if name is correct
+
+struct {
+    short Field1;
+    hfloat Field2;
+    float Field3;
+
+    short Field4;
+    hfloat Field5;
+    float Field6;
+
+    float Field8;
+    float Field9;
+
+    float Field11;
+
+    char unknown[20];
+} test3[header.Flags.m_NumMeshes];
+
+
+//stuff that could be things lol, CollisionEntities,BatchTasks,PreRender,PreRenderTypes,TypesRender,BatchTrees,m_NumBatchTreeNodes,m_NumPreRenderBatches
