@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -43,68 +43,14 @@ namespace SO18_Dumper
             UnknownShort = Util.ReadValueU16(input);
 
             if (sobjver == 16)
-            {   //to lazy to write code, should discard 132 bytes
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-            }
-            if (sobjver == 13) //still don't care
             {
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
-                _ = Util.ReadValueU32(input);
+                // Discard 132 bytes
+                input.Seek(132, SeekOrigin.Current);
+            }
+            else if (sobjver == 13)
+            {
+                // Discard 100 bytes
+                input.Seek(100, SeekOrigin.Current);
             }
         }
     }

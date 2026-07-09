@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -54,53 +54,32 @@ namespace SO18_Dumper
                     Unkn8_Offset = Util.ReadValueU32(input);
                 }
 
-                if (sobjver == 16) //don't really care that much, only supporting these for a friend
+                if (sobjver == 16)
                 {
                     Mesh_Offset = Util.ReadValueU32(input);
                     Entity_Offset = Util.ReadValueU32(input);
                     BatchTree_Offset = Util.ReadValueU32(input);
-                    //discard, don't use any of it currently anyways
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
+                    
+                    input.Seek(20, SeekOrigin.Current); // discard 20 bytes
 
                     m_NumEntities = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
+                    input.Seek(4, SeekOrigin.Current); // discard 4 bytes
+                    
                     m_NumMeshes = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
+                    input.Seek(28, SeekOrigin.Current); // discard 28 bytes
                 }
-                if (sobjver == 13)
+                else if (sobjver == 13)
                 {
-
                     Mesh_Offset = Util.ReadValueU32(input);
                     Entity_Offset = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
+                    
+                    input.Seek(28, SeekOrigin.Current); // discard 28 bytes
+                    
                     m_NumEntities = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
+                    input.Seek(8, SeekOrigin.Current); // discard 8 bytes
+                    
                     m_NumMeshes = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
-                    _ = Util.ReadValueU32(input);
+                    input.Seek(28, SeekOrigin.Current); // discard 28 bytes
                 }
             }
         }

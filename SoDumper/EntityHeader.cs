@@ -54,7 +54,7 @@ namespace SO18_Dumper
             Color1.R = Util.ReadValueU8(input);
             Color1.A = Util.ReadValueU8(input);
 
-            _ = Util.ReadValueS32(input);//DISCARD 4 bytes
+            input.Seek(4, SeekOrigin.Current); // DISCARD 4 bytes
         }
     }
 }

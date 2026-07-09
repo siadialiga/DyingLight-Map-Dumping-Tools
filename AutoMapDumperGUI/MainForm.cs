@@ -51,6 +51,8 @@ namespace AutoMapDumperGUI
             this.Size = new Size(800, 640);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
 
             lblMap = new Label { Text = "Available Maps (Grouped by DLC):", Location = new Point(20, 20), AutoSize = true };
             this.Controls.Add(lblMap);
