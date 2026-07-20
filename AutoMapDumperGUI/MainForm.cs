@@ -25,8 +25,15 @@ namespace AutoMapDumperGUI
         private Label lblOutputDir;
         private TextBox txtOutputDir;
         private Button btnBrowseOutput;
+        private Label lblOutputHint;
         
         private LinkLabel lblCredits;
+        private TabControl tcMode;
+        private TabPage tpAutomated;
+        private TabPage tpManual;
+        private Label lblAutoDesc;
+        private Label lblManualDesc;
+
 
         private readonly string defaultGamePath = @"C:\Program Files (x86)\Steam\steamapps\common\Dying Light";
 
@@ -48,7 +55,7 @@ namespace AutoMapDumperGUI
         private void InitializeComponent()
         {
             this.Text = "Dying Light Auto Map Dumper";
-            this.Size = new Size(800, 640);
+            this.Size = new Size(800, 735);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -65,22 +72,48 @@ namespace AutoMapDumperGUI
             tvMaps.AfterSelect += TvMaps_AfterSelect;
             this.Controls.Add(tvMaps);
 
-            lblOutputDir = new Label { Text = "DumpedMaps Output Folder:", Location = new Point(20, 280), AutoSize = true };
+            lblOutputDir = new Label { Text = "DumpedMaps Output Folder:", Location = new Point(20, 275), AutoSize = true };
             this.Controls.Add(lblOutputDir);
 
-            txtOutputDir = new TextBox { Location = new Point(20, 300), Width = 640 };
+            txtOutputDir = new TextBox { Location = new Point(20, 295), Width = 640 };
             this.Controls.Add(txtOutputDir);
 
-            btnBrowseOutput = new Button { Text = "Browse Output", Location = new Point(670, 299), Width = 100 };
+            btnBrowseOutput = new Button { Text = "Browse Output", Location = new Point(670, 294), Width = 100 };
             btnBrowseOutput.Click += BtnBrowseOutput_Click;
             this.Controls.Add(btnBrowseOutput);
 
-            btnDump = new Button { Text = "Dump Selected", Location = new Point(20, 335), Width = 200, Height = 40, Enabled = false };
+            lblOutputHint = new Label { Location = new Point(20, 320), AutoSize = true, Font = new Font("Segoe UI", 8F, FontStyle.Italic), ForeColor = Color.Gray };
+            this.Controls.Add(lblOutputHint);
+
+            tcMode = new TabControl { Location = new Point(20, 340), Width = 750, Height = 95 };
+            
+            tpAutomated = new TabPage { Text = "Automated (Direct Binary Patch) - RECOMMENDED" };
+            lblAutoDesc = new Label {
+                Text = "This mode directly patches the .map binary with ModelObjects.\nNo extra manual steps or .eds files required.\nYou just need to click the dump button.",
+                Location = new Point(10, 10),
+                Size = new Size(720, 50)
+            };
+            tpAutomated.Controls.Add(lblAutoDesc);
+
+            tpManual = new TabPage { Text = "Manual (EDS Export) - LEGACY" };
+            lblManualDesc = new Label {
+                Text = "Extracts to an external .eds file. Requires you to run Map2EDS, create a dummy object,\ngroup it, set matrix to 0,0,0, and manually swap the generated .eds file in your project folder.\nUse only if you need EDS files of core game maps.",
+                Location = new Point(10, 10),
+                Size = new Size(720, 50)
+            };
+            tpManual.Controls.Add(lblManualDesc);
+
+            tcMode.TabPages.Add(tpAutomated);
+            tcMode.TabPages.Add(tpManual);
+            tcMode.SelectedIndexChanged += TcMode_SelectedIndexChanged;
+            this.Controls.Add(tcMode);
+
+            btnDump = new Button { Text = "Dump Selected", Location = new Point(20, 445), Width = 200, Height = 40, Enabled = false };
             btnDump.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             btnDump.Click += BtnDump_Click;
             this.Controls.Add(btnDump);
 
-            txtLog = new TextBox { Location = new Point(20, 385), Width = 750, Height = 175, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical };
+            txtLog = new TextBox { Location = new Point(20, 495), Width = 750, Height = 175, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical };
             this.Controls.Add(txtLog);
 
             lblCredits = new LinkLabel 
@@ -136,7 +169,7 @@ namespace AutoMapDumperGUI
         {
             Log("Application started.");
             
-            txtOutputDir.Text = Path.Combine(defaultGamePath, "DumpedMaps");
+            UpdateOutputPathHint();
 
             if (Directory.Exists(defaultGamePath))
             {
@@ -146,6 +179,34 @@ namespace AutoMapDumperGUI
             else
             {
                 Log("Default game path not found. Please click 'Browse Game' to locate your Dying Light installation.");
+            }
+        }
+
+        private void TcMode_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateOutputPathHint();
+        }
+
+        private void UpdateOutputPathHint()
+        {
+            bool isAutomated = (tcMode.SelectedTab == tpAutomated);
+            if (isAutomated)
+            {
+                lblOutputHint.Text = "Please select your project's data/maps folder here. Example: ...\\Dying Light\\workshop\\YourProject\\data\\maps";
+                string workshopPath = @"C:\Program Files (x86)\Steam\steamapps\common\Dying Light\workshop";
+                if (Directory.Exists(workshopPath))
+                {
+                    txtOutputDir.Text = workshopPath;
+                }
+                else
+                {
+                    txtOutputDir.Text = workshopPath;
+                }
+            }
+            else
+            {
+                lblOutputHint.Text = "You can select any empty folder to extract the generated .eds files.";
+                txtOutputDir.Text = Path.Combine(defaultGamePath, "DumpedMaps");
             }
         }
 
@@ -167,6 +228,11 @@ namespace AutoMapDumperGUI
             using (var fbd = new FolderBrowserDialog())
             {
                 fbd.Description = "Select output folder for Dumped Maps";
+                if (Directory.Exists(txtOutputDir.Text))
+                {
+                    fbd.SelectedPath = txtOutputDir.Text;
+                }
+                
                 if (fbd.ShowDialog() == DialogResult.OK)
                 {
                     txtOutputDir.Text = fbd.SelectedPath;
@@ -337,7 +403,9 @@ namespace AutoMapDumperGUI
             btnBrowseGame.Enabled = false;
             btnBrowseOutput.Enabled = false;
 
-            await Task.Run(() => ProcessDump(mapsToDump, outputBasePath));
+                        bool useAutomated = false;
+            this.Invoke(new Action(() => { useAutomated = (tcMode.SelectedTab == tpAutomated); }));
+            await Task.Run(() => ProcessDump(mapsToDump, outputBasePath, useAutomated));
 
             btnDump.Enabled = true;
             tvMaps.Enabled = true;
@@ -367,7 +435,186 @@ namespace AutoMapDumperGUI
             return null;
         }
 
-        private void ProcessDump(List<(string pakPath, string mapEntry, string groupName)> mapsToDump, string outputBasePath)
+        class ModelEntity
+        {
+            public float[] Position = new float[3] { 0, 0, 0 };
+            public float[] Rotation = new float[3] { 0, 0, 0 };
+            public float[] Scale = new float[3] { 1, 1, 1 };
+            public string MeshName = "dummy_box.msh";
+            public string SkinName = "";
+            public float[] Color0 = new float[4] { 1, 1, 1, 1 };
+            public float[] Color1 = new float[4] { 0, 0, 0, 0 };
+            public long RequiredTags = 0;
+            public long ForbiddenTags = 0;
+            public uint Seed = 0;
+        }
+
+        private float[] ParseVector3(string val)
+        {
+            var parts = val.Trim('<', '>').Split(',');
+            return new float[] { float.Parse(parts[0]), float.Parse(parts[1]), float.Parse(parts[2]) };
+        }
+
+        private float[] ParseColor(string val)
+        {
+            var parts = val.Trim('<', '>').Split(',');
+            return new float[] { 
+                float.Parse(parts[0]) / 255f, 
+                float.Parse(parts[1]) / 255f, 
+                float.Parse(parts[2]) / 255f, 
+                float.Parse(parts[3]) / 255f 
+            };
+        }
+
+        private byte[] CreateTransformMatrix(float[] rot, float[] scale, float[] pos)
+        {
+            double radX = rot[0] * Math.PI / 180.0;
+            double radY = rot[1] * Math.PI / 180.0;
+            double radZ = rot[2] * Math.PI / 180.0;
+
+            double cosX = Math.Cos(radX), sinX = Math.Sin(radX);
+            double cosY = Math.Cos(radY), sinY = Math.Sin(radY);
+            double cosZ = Math.Cos(radZ), sinZ = Math.Sin(radZ);
+
+            float m11 = (float)(cosY * cosZ * scale[0]);
+            float m12 = (float)(-cosY * sinZ * scale[1]);
+            float m13 = (float)(sinY * scale[2]);
+
+            float m21 = (float)((cosX * sinZ + sinX * sinY * cosZ) * scale[0]);
+            float m22 = (float)((cosX * cosZ - sinX * sinY * sinZ) * scale[1]);
+            float m23 = (float)(-sinX * cosY * scale[2]);
+
+            float m31 = (float)((sinX * sinZ - cosX * sinY * cosZ) * scale[0]);
+            float m32 = (float)((sinX * cosZ + cosX * sinY * sinZ) * scale[1]);
+            float m33 = (float)(cosX * cosY * scale[2]);
+
+            byte[] matrix = new byte[48];
+            Buffer.BlockCopy(BitConverter.GetBytes(m11), 0, matrix, 0, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(m12), 0, matrix, 4, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(m13), 0, matrix, 8, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(pos[0]), 0, matrix, 12, 4);
+            
+            Buffer.BlockCopy(BitConverter.GetBytes(m21), 0, matrix, 16, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(m22), 0, matrix, 20, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(m23), 0, matrix, 24, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(pos[1]), 0, matrix, 28, 4);
+            
+            Buffer.BlockCopy(BitConverter.GetBytes(m31), 0, matrix, 32, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(m32), 0, matrix, 36, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(m33), 0, matrix, 40, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(pos[2]), 0, matrix, 44, 4);
+
+            return matrix;
+        }
+
+        private void WriteTLV(List<byte> buf, ushort tag, byte[] data)
+        {
+            buf.AddRange(BitConverter.GetBytes(tag));
+            buf.AddRange(BitConverter.GetBytes((uint)data.Length));
+            buf.AddRange(data);
+        }
+
+        private byte[] BuildModelObject(ModelEntity ent, uint objId)
+        {
+            List<byte> temp = new List<byte>();
+
+            // w\x00 + class name block
+            byte[] classBytes = System.Text.Encoding.ASCII.GetBytes("ModelObject");
+            temp.Add(0x77); temp.Add(0x00);
+            temp.AddRange(BitConverter.GetBytes((uint)classBytes.Length + 2));
+            temp.AddRange(BitConverter.GetBytes((ushort)classBytes.Length));
+            temp.AddRange(classBytes);
+
+            // tag 0x003D (flags)
+            WriteTLV(temp, 0x003D, BitConverter.GetBytes(0x00004001));
+
+            // tag 0x145A (Z14 block)
+            byte[] z14 = new byte[] {
+                0x90, 0x01, 0x00, 0x00, 0x2C, 0x01, 0x00, 0x00,
+                0x01, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+                0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            };
+            WriteTLV(temp, 0x145A, z14);
+
+            // tag 0x00C4 (colors)
+            List<byte> c4 = new List<byte>();
+            c4.AddRange(BitConverter.GetBytes(2u));
+            c4.AddRange(BitConverter.GetBytes(0u));
+            foreach (float c in ent.Color0) c4.AddRange(BitConverter.GetBytes(c));
+            c4.AddRange(new byte[16]);
+            foreach (float c in ent.Color0) c4.AddRange(BitConverter.GetBytes(c));
+            c4.AddRange(new byte[16]);
+            WriteTLV(temp, 0x00C4, c4.ToArray());
+
+            // tag 0x00CB (tags)
+            List<byte> cb = new List<byte>();
+            cb.AddRange(BitConverter.GetBytes(ent.RequiredTags));
+            cb.AddRange(BitConverter.GetBytes(ent.ForbiddenTags));
+            cb.AddRange(BitConverter.GetBytes(ent.Seed));
+            WriteTLV(temp, 0x00CB, cb.ToArray());
+
+            // tag 0x00DF (transform matrix)
+            byte[] df = CreateTransformMatrix(ent.Rotation, ent.Scale, ent.Position);
+            WriteTLV(temp, 0x00DF, df);
+
+            // tag 0x00BE
+            List<byte> be = new List<byte>();
+            be.AddRange(BitConverter.GetBytes(2.432065f));
+            be.AddRange(BitConverter.GetBytes(1u));
+            WriteTLV(temp, 0x00BE, be.ToArray());
+
+            // tag 0x0014 (unique object ID)
+            WriteTLV(temp, 0x0014, BitConverter.GetBytes(objId));
+
+            // tag 0x007D (GUID)
+            byte[] guidBytes = new byte[8];
+            new Random().NextBytes(guidBytes);
+            WriteTLV(temp, 0x007D, guidBytes);
+
+            // tag 0x0016
+            WriteTLV(temp, 0x0016, BitConverter.GetBytes((ushort)0));
+
+            // tag 0x0079 (mesh/skin names)
+            List<byte> x79 = new List<byte>();
+            byte[] meshBytes = System.Text.Encoding.ASCII.GetBytes(ent.MeshName);
+            byte[] skinBytes = string.IsNullOrEmpty(ent.SkinName) ? new byte[0] : System.Text.Encoding.ASCII.GetBytes(ent.SkinName);
+
+            x79.Add(0x0C);
+            x79.AddRange(BitConverter.GetBytes((ushort)8));
+            x79.AddRange(System.Text.Encoding.ASCII.GetBytes("MeshName"));
+            x79.AddRange(BitConverter.GetBytes((uint)meshBytes.Length + 2));
+            x79.AddRange(BitConverter.GetBytes((ushort)meshBytes.Length));
+            x79.AddRange(meshBytes);
+
+            if (skinBytes.Length > 0 && ent.SkinName != "default")
+            {
+                x79.Add(0x0C);
+                x79.AddRange(BitConverter.GetBytes((ushort)8));
+                x79.AddRange(System.Text.Encoding.ASCII.GetBytes("SkinName"));
+                x79.AddRange(BitConverter.GetBytes((uint)skinBytes.Length + 2));
+                x79.AddRange(BitConverter.GetBytes((ushort)skinBytes.Length));
+                x79.AddRange(skinBytes);
+            }
+
+            x79.Add(0xFF);
+            WriteTLV(temp, 0x0079, x79.ToArray());
+
+            // tag 0x007C
+            WriteTLV(temp, 0x007C, BitConverter.GetBytes(-1));
+
+            // F7 trailer
+            temp.AddRange(new byte[] { 0xF7, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00 });
+
+            // Wrap as root object
+            List<byte> result = new List<byte>();
+            result.Add(0x76); result.Add(0x00);
+            result.AddRange(BitConverter.GetBytes((uint)temp.Count));
+            result.AddRange(temp);
+
+            return result.ToArray();
+        }
+
+        private void ProcessDump(List<(string pakPath, string mapEntry, string groupName)> mapsToDump, string outputBasePath, bool useAutomated)
         {
             Log($"Starting dump process for {mapsToDump.Count} map(s)...");
 
@@ -379,63 +626,144 @@ namespace AutoMapDumperGUI
                 Log("ERROR: SO18_Dumper.exe not found.");
                 return;
             }
-            if (map2edsExe == null)
+            if (!useAutomated && map2edsExe == null)
             {
-                Log("ERROR: Map2EDS.exe not found.");
+                Log("ERROR: Map2EDS.exe not found. Required for Manual mode.");
                 return;
             }
 
             foreach (var map in mapsToDump)
             {
-                string groupOutputDir = Path.Combine(outputBasePath, map.groupName);
-                Directory.CreateDirectory(groupOutputDir);
-
-                string mapName = Path.GetFileName(map.mapEntry);
-                string mapNameNoExt = Path.GetFileNameWithoutExtension(mapName);
+                string mapName = Path.GetFileName(map.mapEntry); // e.g. slums.sobj
+                string mapNameNoExt = Path.GetFileNameWithoutExtension(mapName); // slums
                 
-                string extractedMapPath = Path.Combine(groupOutputDir, mapName);
-                string txtPath = Path.Combine(groupOutputDir, $"{mapNameNoExt}.txt");
-                string edsPath = Path.Combine(groupOutputDir, $"{mapNameNoExt}.eds");
+                string mapOutputDir;
 
-                Log($"[{map.groupName}] Processing {mapName}...");
+                bool isWorkshop = outputBasePath.ToLower().Contains(@"devtools\workshop") || outputBasePath.ToLower().EndsWith(@"data\maps");
 
-                // 1. Extract
-                try
+                string edsOutputDir;
+
+                if (isWorkshop)
                 {
-                    using (var archive = ZipFile.OpenRead(map.pakPath))
+                    string dataDir = outputBasePath;
+                    while (!string.IsNullOrEmpty(dataDir) && Path.GetFileName(dataDir).ToLower() != "data")
                     {
-                        var entry = archive.GetEntry(map.mapEntry);
-                        if (entry != null)
+                        dataDir = Path.GetDirectoryName(dataDir);
+                    }
+                    
+                    if (!string.IsNullOrEmpty(dataDir))
+                    {
+                        edsOutputDir = dataDir; 
+                        mapOutputDir = Path.Combine(dataDir, "maps", mapNameNoExt);
+                    }
+                    else
+                    {
+                        edsOutputDir = Path.GetDirectoryName(outputBasePath); 
+                        mapOutputDir = Path.Combine(outputBasePath, mapNameNoExt);
+                    }
+                }
+                else
+                {
+                    string groupOutputDir = Path.Combine(outputBasePath, map.groupName);
+                    edsOutputDir = groupOutputDir;
+                    mapOutputDir = Path.Combine(groupOutputDir, mapNameNoExt);
+                }
+                Directory.CreateDirectory(edsOutputDir);
+
+                string mapFile = null;
+
+                if (useAutomated)
+                {
+                    Directory.CreateDirectory(mapOutputDir);
+                    Log($"[{map.groupName}] Extracting map folder to {mapOutputDir}...");
+
+                    // 1. Extract entire map folder from PAK
+                    string mapFolderInPak = Path.GetDirectoryName(map.mapEntry).Replace('\\', '/').TrimEnd('/') + "/";
+                    try
+                    {
+                        using (var archive = ZipFile.OpenRead(map.pakPath))
                         {
-                            entry.ExtractToFile(extractedMapPath, true);
+                            foreach (var entry in archive.Entries)
+                            {
+                                if (entry.FullName.StartsWith(mapFolderInPak, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    string relativePath = entry.FullName.Substring(mapFolderInPak.Length);
+                                    if (string.IsNullOrEmpty(relativePath)) continue;
+
+                                    string destPath = Path.Combine(mapOutputDir, relativePath);
+                                    Directory.CreateDirectory(Path.GetDirectoryName(destPath));
+                                    entry.ExtractToFile(destPath, true);
+                                }
+                            }
                         }
-                        else
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($" -> Extraction failed: {ex.Message}");
+                        continue;
+                    }
+
+                    // 2. Rename .exp to .map
+                    string expFile = Directory.GetFiles(mapOutputDir, "*.exp").FirstOrDefault();
+                    if (expFile != null)
+                    {
+                        mapFile = Path.ChangeExtension(expFile, ".map");
+                        try
                         {
-                            Log($" -> Error: Could not find inside archive.");
-                            continue;
+                            if (File.Exists(mapFile)) File.Delete(mapFile);
+                            File.Move(expFile, mapFile);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($" -> Failed to rename .exp to .map: {ex.Message}");
                         }
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    Log($" -> Extraction failed: {ex.Message}");
+                    Log($"[{map.groupName}] Extracting {mapNameNoExt}.sobj for EDS generation...");
+                    try
+                    {
+                        using (var archive = ZipFile.OpenRead(map.pakPath))
+                        {
+                            var entry = archive.Entries.FirstOrDefault(e => e.FullName.Equals(map.mapEntry, StringComparison.OrdinalIgnoreCase));
+                            if (entry != null)
+                            {
+                                entry.ExtractToFile(Path.Combine(edsOutputDir, Path.GetFileName(map.mapEntry)), true);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($" -> Extraction failed: {ex.Message}");
+                        continue;
+                    }
+                }
+
+                // 3. Prepare SOBJ path
+                string sobjPath = useAutomated ? Path.Combine(mapOutputDir, $"{mapNameNoExt}.sobj") : Path.Combine(edsOutputDir, $"{mapNameNoExt}.sobj");
+                string txtPath = useAutomated ? Path.Combine(mapOutputDir, $"{mapNameNoExt}.txt") : Path.Combine(edsOutputDir, $"{mapNameNoExt}.txt");
+
+                if (!File.Exists(sobjPath))
+                {
+                    Log($" -> Error: extracted SOBJ not found at {sobjPath}");
                     continue;
                 }
 
-                // 2. Dump
+                Log($" -> Running SOBJ Dump...");
+
+                // 4. Dump SOBJ directly preserving encoding
                 try
                 {
-                    var psi = new ProcessStartInfo(dumperExe, $"\"{extractedMapPath}\"")
+                    // Redirect through cmd to properly save output with encoding
+                    var psi = new ProcessStartInfo("cmd.exe", $"/c \"\"{dumperExe}\" \"{sobjPath}\" > \"{txtPath}\"\"")
                     {
                         UseShellExecute = false,
-                        RedirectStandardOutput = true,
                         CreateNoWindow = true
                     };
                     using (var process = Process.Start(psi))
                     {
-                        string output = process.StandardOutput.ReadToEnd();
                         process.WaitForExit();
-                        File.WriteAllText(txtPath, output);
                     }
                 }
                 catch (Exception ex)
@@ -444,83 +772,273 @@ namespace AutoMapDumperGUI
                     continue;
                 }
 
-                // 3. Map2EDS
-                try
+                // 5. Parse SOBJ txt directly
+                                string edsName = $"{mapNameNoExt}.eds";
+                string edsPath = Path.Combine(edsOutputDir, edsName);
+
+                if (!useAutomated)
                 {
-                    var psi = new ProcessStartInfo(map2edsExe, $"\"{txtPath}\" \"{edsPath}\"")
+                    Log(" -> Running Map2EDS...");
+                    try
                     {
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    };
-                    using (var process = Process.Start(psi))
+                        var pMap2EDS = new ProcessStartInfo(map2edsExe, $"\"{txtPath}\" \"{edsPath}\"")
+                        {
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+                        using (var process = Process.Start(pMap2EDS))
+                        {
+                            process.WaitForExit();
+                        }
+                    }
+                    catch (Exception ex)
                     {
-                        process.WaitForExit();
+                        Log($" -> Error running Map2EDS: {ex.Message}");
+                    }
+                }
+                
+                Log(" -> Parsing entities...");
+                List<ModelEntity> entities = new List<ModelEntity>();
+                
+                try 
+                {
+                    string[] lines = null;
+                    
+                    // Fallback try-catches for PowerShell redirects converting to UTF-8
+                    try { lines = File.ReadAllLines(txtPath, System.Text.Encoding.UTF8); if(lines.Length == 0 || !lines[0].Contains("Class")) throw new Exception(); }
+                    catch { try { lines = File.ReadAllLines(txtPath, System.Text.Encoding.Unicode); } catch { lines = File.ReadAllLines(txtPath); } }
+                    
+                    for (int i = 0; i < lines.Length; i++)
+                    {
+                        string line = lines[i].Trim();
+                        if (string.IsNullOrEmpty(line)) continue;
+                        
+                        if (line.StartsWith("Class = ModelObject"))
+                        {
+                            ModelEntity ent = new ModelEntity();
+                            i++;
+                            while (i < lines.Length && !lines[i].Trim().StartsWith("Class ="))
+                            {
+                                string prop = lines[i].Trim();
+                                if (!string.IsNullOrEmpty(prop) && prop.Contains("="))
+                                {
+                                    int eq = prop.IndexOf('=');
+                                    string k = prop.Substring(0, eq).Trim();
+                                    string v = prop.Substring(eq + 1).Trim();
+
+                                    try {
+                                        if (k == "Position") ent.Position = ParseVector3(v);
+                                        else if (k == "Rotation") ent.Rotation = ParseVector3(v);
+                                        else if (k == "Scale") ent.Scale = ParseVector3(v);
+                                        else if (k == "MeshName") ent.MeshName = v;
+                                        else if (k == "SkinName") ent.SkinName = v;
+                                        else if (k == "Color0") ent.Color0 = ParseColor(v);
+                                        else if (k == "Color1") ent.Color1 = ParseColor(v);
+                                        else if (k == "Seed") ent.Seed = uint.Parse(v);
+                                        else if (k == "required_tags") ent.RequiredTags = long.Parse(v);
+                                        else if (k == "forbidden_tags") ent.ForbiddenTags = long.Parse(v);
+                                    } catch { }
+                                }
+                                i++;
+                            }
+                            entities.Add(ent);
+                            i--; // re-evaluate the next class
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log($" -> Error running Map2EDS: {ex.Message}");
-                    continue;
+                    Log($" -> Failed to parse entities: {ex.Message}");
                 }
 
-                // 4. Cleanup
+                Log($" -> Parsed {entities.Count} ModelObjects.");
+
+                // Cleanup temporary txt
                 try
                 {
-                    if (File.Exists(extractedMapPath)) File.Delete(extractedMapPath);
                     if (File.Exists(txtPath)) File.Delete(txtPath);
+                    if (!useAutomated && File.Exists(sobjPath)) File.Delete(sobjPath);
                 }
                 catch { }
 
-                Log($" -> Success: {edsPath}");
+                // 6. Binary patch the .map file natively
+                if (useAutomated && mapFile != null && File.Exists(mapFile) && entities.Count > 0)
+                {
+                    Log(" -> Building binary objects...");
+                    try
+                    {
+                        List<byte> allObjects = new List<byte>();
+                        uint baseId = (uint)(0x10000000 + new Random().Next(0, 0x0FFFFFFF));
+                        
+                        for (int i = 0; i < entities.Count; i++)
+                        {
+                            allObjects.AddRange(BuildModelObject(entities[i], baseId + (uint)i));
+                        }
+                        
+                        byte[] fileData = File.ReadAllBytes(mapFile);
+                        
+                        int firstRootIndex = -1;
+                        for (int i = 0; i <= fileData.Length - 8; i++)
+                        {
+                            if (fileData[i] == 0x76 && fileData[i+1] == 0x00 && fileData[i+6] == 0x77 && fileData[i+7] == 0x00)
+                            {
+                                firstRootIndex = i;
+                                break;
+                            }
+                        }
+
+                        if (firstRootIndex != -1)
+                        {
+                            int currentIndex = firstRootIndex;
+                            while (currentIndex < fileData.Length - 6)
+                            {
+                                if (fileData[currentIndex] != 0x76 || fileData[currentIndex + 1] != 0x00)
+                                    break;
+                                
+                                uint size = BitConverter.ToUInt32(fileData, currentIndex + 2);
+                                currentIndex += 6 + (int)size;
+                            }
+                            
+                            if (currentIndex >= fileData.Length) currentIndex = fileData.Length;
+
+                            byte[] insertArr = allObjects.ToArray();
+                            uint origSize = BitConverter.ToUInt32(fileData, 2);
+                            byte[] newSizeBytes = BitConverter.GetBytes(origSize + (uint)insertArr.Length);
+                            Array.Copy(newSizeBytes, 0, fileData, 2, 4);
+
+                            byte[] patchedData = new byte[fileData.Length + insertArr.Length];
+                            Array.Copy(fileData, 0, patchedData, 0, currentIndex);
+                            Array.Copy(insertArr, 0, patchedData, currentIndex, insertArr.Length);
+                            Array.Copy(fileData, currentIndex, patchedData, currentIndex + insertArr.Length, fileData.Length - currentIndex);
+                            
+                            File.WriteAllBytes(mapFile, patchedData);
+                            Log($" -> Patched native map! Generated {insertArr.Length} bytes.");
+                        }
+                        else
+                        {
+                            Log(" -> Error: Root object pattern not found in .map");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($" -> Failed to patch binary .map: {ex.Message}");
+                    }
+                }
+
+                Log($" -> Success! {(useAutomated ? "Map ready: " + mapOutputDir : "EDS ready: " + edsOutputDir)}");
             }
 
-            WriteReadme(outputBasePath);
             Log("=== ALL OPERATIONS COMPLETE ===");
         }
 
-        private void WriteReadme(string outputDir)
+
+
+        private void PatchMapFile(string mapFilePath, string edsFileName)
         {
-            string guideText = @"================================================================================
-IMPORTANT: FINAL MANUAL STEPS REQUIRED
-================================================================================
-
-Even though the extraction is automated, you must complete these final steps manually:
-
-1. Locate the map folder in the game files:
-   - Path: C:\Program Files (x86)\Steam\steamapps\common\Dying Light\DW\Data2.pak\data\maps\
-   - Use 7-Zip to open Data2.pak.
-   - Copy the folder of the map you just dumped and paste it onto your Desktop.
-
-2. Prepare the map file:
-   - Inside the copied folder on your Desktop, change the extension of the .exp file to .map.
-
-3. Install the map for DevTools:
-   - Move the modified map folder to:
-     C:\Program Files (x86)\Steam\steamapps\common\Dying Light\DevTools\workshop\(YOUR PROJECT FOLDER)\data\maps
-
-   - Then open your project in the Dying Light Developer Tools and load the map you exported from the core game.
-
-4. Initialize the map in Developer Tools:
-   - You will see objects scattered randomly—this is normal.
-   - Place any random object in the map.
-   - In the Attributes section, set its Matrix coordinates to 0, 0, 0 (x, y, z).
-   - Group this object, save the map, and exit.
-
-5. Import the dumped data:
-   - Take the .eds file generated by this program.
-   - Rename it to match the name of the .eds (the group) you just created in the map.
-   - Replace the file in the workshop folder.
-
-6. Final result:
-   - Reopen the map in DevTools. All objects should now be properly loaded and positioned.
-   - Recommendation: Use 'Destroy Hierarchy' to ungroup objects for easier editing.
-================================================================================";
-
-            string readmePath = Path.Combine(outputDir, "README.txt");
-            if (!File.Exists(readmePath))
+            byte[] fileData = File.ReadAllBytes(mapFilePath);
+            
+            int firstRootIndex = -1;
+            for (int i = 0; i <= fileData.Length - 8; i++)
             {
-                try { File.WriteAllText(readmePath, guideText); } catch { }
+                if (fileData[i] == 0x76 && fileData[i+1] == 0x00 && fileData[i+6] == 0x77 && fileData[i+7] == 0x00)
+                {
+                    firstRootIndex = i;
+                    break;
+                }
             }
+
+            int injectionPoint = -1;
+            if (firstRootIndex != -1)
+            {
+                int currentIndex = firstRootIndex;
+                while (currentIndex < fileData.Length - 6)
+                {
+                    if (fileData[currentIndex] != 0x76 || fileData[currentIndex + 1] != 0x00)
+                    {
+                        injectionPoint = currentIndex;
+                        break;
+                    }
+                    uint size = BitConverter.ToUInt32(fileData, currentIndex + 2);
+                    currentIndex += 6 + (int)size;
+                }
+                if (currentIndex >= fileData.Length) injectionPoint = fileData.Length;
+            }
+            
+            if (injectionPoint == -1)
+            {
+                Log(" -> Warning: Root object pattern not found in .map file. Skipping binary patch.");
+                return;
+            }
+            
+            byte[] templateBlock = new byte[] {
+                0x76, 0x00, 0x1F, 0x01, 0x00, 0x00, 0x77, 0x00, 0x11, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x53, 0x65,
+                0x6C, 0x65, 0x63, 0x74, 0x69, 0x6F, 0x6E, 0x4F, 0x62, 0x6A, 0x65, 0x63, 0x74, 0x3D, 0x00, 0x04,
+                0x00, 0x00, 0x00, 0x04, 0x40, 0x00, 0x00, 0x5A, 0x14, 0x18, 0x00, 0x00, 0x00, 0x90, 0x01, 0x00,
+                0x00, 0x2C, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x04, 0x1A, 0x00, 0x00, 0x00, 0x80, 0x02, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x0B, 0x00, 0x00, 0x00, 0x2F, 0x01, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+                0x01, 0x01, 0x00, 0x00, 0x00
+            };
+            
+            byte[] templateRest = new byte[] {
+                0x01, 0x00, 0x00, 0x00, 0x3A, 0x00, 0x18, 0x00, 0x00, 0x00, 0xC2, 0xF6, 0x2A, 0xBF, 0x00, 0x00,
+                0x00, 0x00, 0xE0, 0xE8, 0xE9, 0xBD, 0xBA, 0xAC, 0x2F, 0x3F, 0x27, 0xD8, 0xC8, 0x3F, 0xA8, 0x11,
+                0x91, 0x3F, 0xDF, 0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3F,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0xBE, 0x00, 0x08, 0x00, 0x00, 0x00, 0x68, 0x20,
+                0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x14, 0x00, 0x04, 0x00, 0x00, 0x00, 0x27, 0x00, 0x00, 0x00,
+                0x16, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79, 0x00, 0x01, 0x00, 0x00, 0x00, 0xFF, 0x7C,
+                0x00, 0x04, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF
+            };
+            
+            byte[] edsNameBytes = System.Text.Encoding.ASCII.GetBytes(edsFileName);
+            byte[] edsNameLenBytes = BitConverter.GetBytes((ushort)edsNameBytes.Length);
+            
+            uint totalSize = (uint)(templateBlock.Length + edsNameLenBytes.Length + edsNameBytes.Length + templateRest.Length - 6);
+            byte[] sizeBytes = BitConverter.GetBytes(totalSize);
+            templateBlock[2] = sizeBytes[0];
+            templateBlock[3] = sizeBytes[1];
+            templateBlock[4] = sizeBytes[2];
+            templateBlock[5] = sizeBytes[3];
+
+            System.Collections.Generic.List<byte> insertBlock = new System.Collections.Generic.List<byte>();
+            insertBlock.AddRange(templateBlock);
+            insertBlock.AddRange(edsNameLenBytes);
+            insertBlock.AddRange(edsNameBytes);
+            insertBlock.AddRange(templateRest);
+            
+            byte[] insertBlockArr = insertBlock.ToArray();
+            
+            uint origSize = BitConverter.ToUInt32(fileData, 2);
+            byte[] newSizeBytes = BitConverter.GetBytes(origSize + (uint)insertBlockArr.Length);
+            Array.Copy(newSizeBytes, 0, fileData, 2, 4);
+            
+            byte[] patchedData = new byte[fileData.Length + insertBlockArr.Length];
+            Array.Copy(fileData, 0, patchedData, 0, injectionPoint);
+            Array.Copy(insertBlockArr, 0, patchedData, injectionPoint, insertBlockArr.Length);
+            Array.Copy(fileData, injectionPoint, patchedData, injectionPoint + insertBlockArr.Length, fileData.Length - injectionPoint);
+            
+            File.WriteAllBytes(mapFilePath, patchedData);
+            Log($" -> Patched binary .map successfully (SelectionObject): {Path.GetFileName(mapFilePath)}");
+        }
+
+        private void PatchMisFile(string misFilePath, string edsFileName)
+        {
+            string selectionObjectBlock = $"\r\nSelectionObject{{SelectionObject}}\r\n" +
+                                          $"\tworld_position = <0, 0, 0>\r\n" +
+                                          $"\tworld_dir = <0, 0, 1>\r\n" +
+                                          $"\tlocal_scale = <1, 1, 1>\r\n" +
+                                          $"\tID\t=\t39\r\n" +
+                                          $"\tlocal ID\t=\t11\r\n" +
+                                          $"\tSeed\t=\t0\r\n" +
+                                          $"\tEds_table\t=\t\r\n" +
+                                          $"\t\t{edsFileName}\t=\t1\r\n";
+                                          
+            File.AppendAllText(misFilePath, selectionObjectBlock);
+            Log($" -> Patched text .mis successfully: {Path.GetFileName(misFilePath)}");
         }
     }
 }
