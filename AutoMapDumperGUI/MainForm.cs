@@ -28,6 +28,7 @@ namespace AutoMapDumperGUI
         private Label lblOutputHint;
         
         private LinkLabel lblCredits;
+        private LinkLabel lblVersion;
         private TabControl tcMode;
         private TabPage tpAutomated;
         private TabPage tpManual;
@@ -72,7 +73,7 @@ namespace AutoMapDumperGUI
             tvMaps.AfterSelect += TvMaps_AfterSelect;
             this.Controls.Add(tvMaps);
 
-            lblOutputDir = new Label { Text = "DumpedMaps Output Folder:", Location = new Point(20, 275), AutoSize = true };
+            lblOutputDir = new Label { Text = "Output Folder:", Location = new Point(20, 275), AutoSize = true };
             this.Controls.Add(lblOutputDir);
 
             txtOutputDir = new TextBox { Location = new Point(20, 295), Width = 640 };
@@ -121,7 +122,7 @@ namespace AutoMapDumperGUI
                 Text = "Made by Batuhan and Brendon", 
                 AutoSize = true, 
                 Font = new Font("Segoe UI", 8F),
-                LinkColor = Color.Gray,
+                LinkColor = Color.DarkBlue,
                 ActiveLinkColor = Color.Blue,
                 LinkBehavior = LinkBehavior.HoverUnderline
             };
@@ -141,6 +142,30 @@ namespace AutoMapDumperGUI
                 }
             };
             this.Controls.Add(lblCredits);
+
+            lblVersion = new LinkLabel
+            {
+                Text = $"DLMDT.v{Application.ProductVersion}",
+                AutoSize = true,
+                Font = new Font("Segoe UI", 8F),
+                LinkColor = Color.DarkBlue,
+                ActiveLinkColor = Color.Blue,
+                LinkBehavior = LinkBehavior.HoverUnderline
+            };
+            lblVersion.Links.Add(0, 5, "https://github.com/siadialiga/DyingLight-Map-Dumping-Tools");
+            this.Controls.Add(lblVersion);
+
+            lblVersion.LinkClicked += (s, e) => 
+            {
+                if (e.Link != null && e.Link.LinkData != null)
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = e.Link.LinkData.ToString(),
+                        UseShellExecute = true
+                    });
+                }
+            };
         }
 
         protected override void OnLayout(LayoutEventArgs levent)
@@ -150,6 +175,10 @@ namespace AutoMapDumperGUI
             {
                 // Place it slightly below the bottom right of the log box
                 lblCredits.Location = new Point(txtLog.Right - lblCredits.Width, txtLog.Bottom + 5);
+            }
+            if (lblVersion != null && txtLog != null)
+            {
+                lblVersion.Location = new Point(txtLog.Left, txtLog.Bottom + 5);
             }
         }
 
@@ -192,8 +221,8 @@ namespace AutoMapDumperGUI
             bool isAutomated = (tcMode.SelectedTab == tpAutomated);
             if (isAutomated)
             {
-                lblOutputHint.Text = "Please select your project's data/maps folder here. Example: ...\\Dying Light\\workshop\\YourProject\\data\\maps";
-                string workshopPath = @"C:\Program Files (x86)\Steam\steamapps\common\Dying Light\workshop";
+                lblOutputHint.Text = "Please select your project's data/maps folder here. Example: ...\\Dying Light\\DevTools\\workshop\\YourProject\\data\\maps";
+                string workshopPath = @"C:\Program Files (x86)\Steam\steamapps\common\Dying Light\DevTools\workshop";
                 if (Directory.Exists(workshopPath))
                 {
                     txtOutputDir.Text = workshopPath;
