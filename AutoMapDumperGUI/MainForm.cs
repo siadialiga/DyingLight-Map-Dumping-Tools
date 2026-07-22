@@ -43,11 +43,7 @@ namespace AutoMapDumperGUI
             InitializeComponent();
             try
             {
-                string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "favicon.ico");
-                if (File.Exists(iconPath))
-                {
-                    this.Icon = new Icon(iconPath);
-                }
+                this.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
             }
             catch { }
             this.Load += MainForm_Load;
