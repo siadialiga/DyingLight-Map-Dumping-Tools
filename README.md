@@ -4,9 +4,6 @@
   <img alt="" src="" width="auto">
 </picture>
 
-
----
-
 This project is designed to help you open and edit the original maps from Dying Light using the official Dying Light Developer Tools. 
 
 I wanted to continue the work of [Brendon](https://github.com/12brendon34), and he gave me permission to do so. If you see any mistakes, please let me know.
