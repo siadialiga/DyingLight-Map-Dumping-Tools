@@ -1,0 +1,72 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'DLMDT.v*'
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Get version from csproj
+        id: get_version
+        shell: powershell
+        run: |
+          $csprojPath = "AutoMapDumperGUI/AutoMapDumperGUI.csproj"
+          [xml]$csproj = Get-Content $csprojPath
+          $rawVersion = $csproj.Project.PropertyGroup.Version
+          $formattedVersion = $rawVersion -replace '\.', '_'
+          echo "VERSION=$rawVersion" >> $env:GITHUB_OUTPUT
+          echo "ZIP_NAME=DLMDT_v$formattedVersion.zip" >> $env:GITHUB_OUTPUT
+
+      - name: Copy favicon before build
+        shell: powershell
+        run: |
+          Copy-Item -Path "favicon.ico" -Destination "AutoMapDumperGUI/favicon.ico" -Force
+
+      - name: Clean projects
+        run: dotnet clean -c Release
+
+      - name: Publish AutoMapDumperGUI
+        run: dotnet publish AutoMapDumperGUI/AutoMapDumperGUI.csproj -c Release -o DLMDT_Release
+
+      - name: Publish SO18_Dumper
+        run: dotnet publish SoDumper/SO18_Dumper.csproj -c Release -o DLMDT_Release/tools/SO18_Dumper
+
+      - name: Publish Map2EDS
+        run: dotnet publish Map2EDS/Map2EDS.csproj -c Release -o DLMDT_Release/tools/Map2EDS
+
+      - name: Cleanup release folder
+        shell: powershell
+        run: |
+          Get-ChildItem -Path DLMDT_Release -Recurse | Where-Object { $_.Extension -eq '.pdb' -or $_.Name -eq 'favicon.ico' } | Remove-Item -Force
+
+      - name: Create ZIP archive
+        shell: powershell
+        run: |
+          Compress-Archive -Path DLMDT_Release/* -DestinationPath ${{ steps.get_version.outputs.ZIP_NAME }} -Force
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            ${{ steps.get_version.outputs.ZIP_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
