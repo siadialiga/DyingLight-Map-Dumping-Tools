@@ -1,11 +1,12 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SO_Dumper
+namespace SO18_Dumper
 {
     internal class Program
     {
@@ -24,59 +25,51 @@ namespace SO_Dumper
 
             using (var input = File.OpenRead(inputfile))
             {
-                string MagicID = Util.ReadString(input, Encoding.ASCII, 4);
+                var header = new Header();
+                header.Deserialize(input);
 
-                if (MagicID == "SO13")
+
+                var MeshHeaders = new MeshHeader[header.flags.m_NumMeshes];
+                for (uint i = 0; i < header.flags.m_NumMeshes; i++)
                 {
-                    Console.WriteLine($"File: {inputfile}, MagicID: {MagicID} — Simple Object version 13 not supported.");
+                    MeshHeaders[i] = new MeshHeader();
+                    if (header.macicID == "SO16")
+                        MeshHeaders[i].Deserialize(input, 16);
+                    else if (header.macicID == "SO13")
+                        MeshHeaders[i].Deserialize(input, 13);
+                    else
+                        MeshHeaders[i].Deserialize(input, 18);
                 }
-                if (MagicID == "SO16")
+
+                var EntityHeaders = new EntityHeader[header.flags.m_NumEntities];
+                for (uint i = 0; i < header.flags.m_NumEntities; i++)
                 {
-                    Console.WriteLine($"File: {inputfile}, MagicID: {MagicID} — Simple Object version 16 not supported.");
+                    EntityHeaders[i] = new EntityHeader();
+                    EntityHeaders[i].Deserialize(input);
                 }
-                if (MagicID == "SO18")
+
+                foreach (EntityHeader entity in EntityHeaders)
                 {
-                    var offsets = new SObjFileOffsets();
-                    offsets.Deserialize(input);
+                    Vector3 rotation = Util.ToZYXEulerAngles(entity.EQuaternion);
 
-                    var SObjects = new CSimpleObjects();
-                    SObjects.Deserialize(input);
+                    Console.WriteLine("Class = ModelObject");
+                    Console.WriteLine("Position = <" + entity.Position.X + ", " + entity.Position.Y + ", " + entity.Position.Z + ">");
+                    Console.WriteLine("Rotation = <" + rotation.X + ", " + rotation.Y + ", " + rotation.Z + ">");
+                    Console.WriteLine("Scale = <" + entity.Scale.X + ", " + entity.Scale.Y + ", " + entity.Scale.Z + ">");
+                    Console.WriteLine("MeshName = " + MeshHeaders[entity.Type].MeshName);
+                    Console.WriteLine("SkinName = " + MeshHeaders[entity.Type].SkinName);
 
-                    for (uint i = 0; i < SObjects.m_Entities.Count(); i++)
-                    {
-                        Console.WriteLine(SObjects.m_Entities[i]);
-                        Console.WriteLine(SObjects.m_TypesRender[SObjects.m_Entities[i].type]);
-                        //Console.WriteLine(SObjects.m_TypesPreRender[SObjects.m_Entities[i].type]);
-                    }
+                    //reformat BGRA -> RGBA
+                    Console.WriteLine("Color0 = <" + entity.Color0.R + ", " + entity.Color0.G + ", " + entity.Color0.B + ", " + entity.Color0.A + ">");
+                    Console.WriteLine("Color1 = <" + entity.Color1.R + ", " + entity.Color1.G + ", " + entity.Color1.B + ", " + entity.Color1.A + ">");
 
+                    Console.WriteLine("Seed = " + MeshHeaders[entity.Type].RandomSeed); //might have issues?? random seed is taken from meshheader but I thought it would be in entity. good enough for most
+                    Console.WriteLine("required_tags = " + MeshHeaders[entity.Type].required_tags);
+                    Console.WriteLine("forbidden_tags = " + MeshHeaders[entity.Type].forbidden_tags);
 
-
-                    //Console.Write(SObjects.ToString());
-
-
-
-
-                    //replace every mesh with forklift
-                    /*
-                    for (uint i = 0; i < SObjects.m_TypesRender.Count(); i++)
-                    {
-                        SObjects.m_TypesRender[i].Mesh = "forklift.msh";
-                        SObjects.m_TypesRender[i].Skin = "Default";
-                        SObjects.m_TypesRender[i].MeshElement = "forklift";
-
-                        SObjects.m_TypesPreRender[i].lodcount = 0; //lod
-
-                    }
-
-                    using (var output = File.OpenWrite("OutTest.sobj"))
-                    {
-                        Util.WriteString(output, "SO18", Encoding.ASCII);
-                        offsets.Serialize(output);
-                        SObjects.Serialize(output);
-                    }
-                    */
+                    Console.Write("\n");//4 next entity
                 }
-                }
+            }
         }
     }
 }

@@ -44,7 +44,7 @@ jobs:
         run: dotnet publish AutoMapDumperGUI/AutoMapDumperGUI.csproj -c Release -o DLMDT_Release
 
       - name: Publish SO18_Dumper
-        run: dotnet publish SoDumper/SO18_Dumper.csproj -c Release -o DLMDT_Release/tools/SO18_Dumper
+        run: dotnet publish SO_Dumper/SO18_Dumper.csproj -c Release -o DLMDT_Release/tools/SO18_Dumper
 
       - name: Publish Map2EDS
         run: dotnet publish Map2EDS/Map2EDS.csproj -c Release -o DLMDT_Release/tools/Map2EDS
